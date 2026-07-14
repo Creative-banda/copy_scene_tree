@@ -32,6 +32,14 @@ It's especially useful when asking AI assistants like **ChatGPT**, **Claude**, o
 
 ---
 
+## Demo
+
+See the plugin in action below — selecting a node, clicking **Tools → Copy Scene Tree**, and pasting the resulting hierarchy into a text editor.
+
+![Copy Scene Tree Demo](./addon.gif)
+
+---
+
 ## Installation
 
 ### From the Godot Asset Library (recommended)
