@@ -7,10 +7,8 @@
 ##   Godot 4.x does not expose a public API for injecting items into the
 ##   Scene dock's right-click PopupMenu. Accessing it would require
 ##   scanning internal editor nodes — a private-API hack that breaks
-##   between engine versions. This plugin therefore adds the action via:
-##     1. Tools menu  → "Copy Scene Tree"  (official EditorPlugin API)
-##     2. A lightweight overlay button injected above the scene dock viewport
-##        so it stays conveniently close to where you work.
+##   between engine versions. This plugin therefore adds the action via
+##   the stable Project > Tools menu.
 extends EditorPlugin
 
 const MENU_ITEM_NAME := "Copy Scene Tree"
@@ -25,7 +23,7 @@ func _exit_tree() -> void:
 	remove_tool_menu_item(MENU_ITEM_NAME)
 
 
-## Called when the user clicks Tools → "Copy Scene Tree".
+## Called when the user clicks Project > Tools > Copy Scene Tree.
 func _on_copy_scene_tree() -> void:
 	var selected := _get_selected_node()
 
@@ -33,15 +31,8 @@ func _on_copy_scene_tree() -> void:
 		push_warning("[CopySceneTree] No node selected. Select a node in the Scene dock first.")
 		return
 
-	# Build the formatted text using the default format.
-	# To switch formats in the future, change the second argument here
-	# or expose a settings panel that stores the user's preference.
 	var text := FORMATTER.build(selected, FORMATTER.Format.NAMES_AND_TYPES)
-
 	DisplayServer.clipboard_set(text)
-
-	# Godot 4.x has no public toast/notification API for editor plugins.
-	# Print to the Output panel — visible without interrupting the workflow.
 	print("[CopySceneTree] ✓ Copied '%s' tree to clipboard." % selected.name)
 
 
@@ -53,5 +44,4 @@ func _get_selected_node() -> Node:
 	var nodes := selection.get_selected_nodes()
 	if nodes.is_empty():
 		return null
-	# If multiple nodes are selected, operate on the first one.
 	return nodes[0]

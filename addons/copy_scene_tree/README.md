@@ -34,9 +34,7 @@ It is especially useful when asking AI assistants like **ChatGPT**, **Claude**, 
 
 ## Demo
 
-See the plugin in action below: selecting a node, clicking **Project → Tools → Copy Scene Tree**, and pasting the resulting hierarchy into a text editor.
-
-![Copy Scene Tree Demo](addon.gif)
+See the demo GIF in the repository root on GitHub. Asset Library downloads include only the addon folder.
 
 ---
 

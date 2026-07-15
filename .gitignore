@@ -1,0 +1,18 @@
+# Godot 4.2+ specific ignores.
+~*.dll
+
+# Godot 4+ specific ignores.
+.godot/
+.nomedia
+
+# Godot generated files.
+.import/
+export.cfg
+export_credentials.cfg
+*.tmp
+*.translation
+
+# Godot C# / Mono generated files.
+.mono/
+data_*/
+mono_crash.*.json
