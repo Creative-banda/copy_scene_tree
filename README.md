@@ -6,6 +6,8 @@ Ever tried to describe your Godot scene structure in a GitHub issue, a bug repor
 
 It is especially useful when asking AI assistants like **ChatGPT**, **Claude**, or **Gemini** for help with your Godot project. Instead of describing your scene in prose, you can paste the exact structure and get answers grounded in your actual setup.
 
+![Copy Scene Tree thumbnail](./thumbnail.png)
+
 ---
 
 ## Features
