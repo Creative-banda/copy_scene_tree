@@ -2,7 +2,7 @@
 
 Ever tried to describe your Godot scene structure in a GitHub issue, a bug report, or an AI chat — and ended up typing it out by hand? This plugin fixes that.
 
-**Copy Scene Tree** is a Godot 4.x editor plugin that copies any selected node's hierarchy as clean, readable text directly to your clipboard. One menu click, zero friction.
+**Copy Scene Tree** is a Godot 4.x editor plugin that lets you export any selected node's hierarchy as clean, readable text directly to your clipboard. One menu click opens a dialog where you choose exactly what to include — then copy.
 
 It is especially useful when asking AI assistants like **ChatGPT**, **Claude**, or **Gemini** for help with your Godot project. Instead of describing your scene in prose, you can paste the exact structure and get answers grounded in your actual setup.
 
@@ -12,15 +12,14 @@ It is especially useful when asking AI assistants like **ChatGPT**, **Claude**, 
 
 ## Features
 
-- One-click copy of any selected node and its full subtree
-- Clean tree-drawing characters (`├──`, `└──`, `│`) at any nesting depth
-- Shows node names and Godot class names by default
-- Displays attached script filenames when present, such as `[player.gd]`
-- Shows `[Built-in Script]` for scripts embedded directly in a scene file
+- Configurable export dialog — choose exactly what gets included
+- **Export options:** Node Names, Node Types, Attached Scripts, Groups, Node Paths, Owner, Scene File, Unique Name
+- **Output formats:** ASCII Tree (default), Plain Text, Markdown
+- Settings are automatically remembered across restarts and project switches
+- Reset Defaults button to restore the original configuration in one click
 - Copies directly to the system clipboard
-- Gives non-blocking feedback in the Output panel
+- Non-blocking confirmation in the Output panel
 - Editor-only addon with no runtime footprint in exported games
-- Small formatter script that can be extended with additional output styles
 
 ---
 
@@ -36,7 +35,7 @@ It is especially useful when asking AI assistants like **ChatGPT**, **Claude**, 
 
 ## Demo
 
-See the plugin in action below: selecting a node, clicking **Project → Tools → Copy Scene Tree**, and pasting the resulting hierarchy into a text editor.
+See the plugin in action below: selecting a node, clicking **Project → Tools → Copy Scene Tree**, configuring the export options, and pasting the resulting hierarchy into a text editor.
 
 ![Copy Scene Tree Demo](addon.gif)
 
@@ -49,7 +48,10 @@ addons/
 └── copy_scene_tree/
     ├── plugin.cfg
     ├── plugin.gd
+    ├── export_options.gd
+    ├── export_options_dialog.gd
     ├── scene_tree_formatter.gd
+    ├── settings_manager.gd
     ├── icon.svg
     ├── icon.png
     ├── README.md
@@ -79,8 +81,11 @@ Search for **Copy Scene Tree** in the Godot Asset Library and click **Install**.
 
 1. Open a scene and select any node in the **Scene** dock.
 2. Go to **Project → Tools → Copy Scene Tree**.
-3. The hierarchy rooted at the selected node is copied to your clipboard.
-4. Paste it anywhere: an AI chat, a GitHub issue, documentation, or a message to a teammate.
+3. The export dialog opens. Choose which information to include and the output format.
+4. Click **Copy**. The hierarchy is written to your clipboard.
+5. Paste it anywhere: an AI chat, a GitHub issue, documentation, or a message to a teammate.
+
+Your selections are saved automatically. The next time you open the dialog your previous choices are already set. Use **Reset Defaults** to restore the original configuration at any time.
 
 A confirmation message appears in the **Output** panel so you know the copy succeeded.
 
@@ -92,9 +97,9 @@ A confirmation message appears in the **Output** panel so you know the copy succ
 
 ---
 
-## Output Format
+## Output Examples
 
-Default format: **Names + Types + Scripts**
+### ASCII Tree (default)
 
 ```text
 Player (CharacterBody2D) [player.gd]
@@ -116,26 +121,82 @@ Root (Node2D) [main.gd]
     └── Enemies (Node2D) [enemy_manager.gd]
 ```
 
-Script filenames are shown only when a script is attached. Nodes without scripts are displayed normally. Scripts embedded directly in the scene, rather than saved as `.gd` files, show `[Built-in Script]`.
+### Plain Text
 
-The formatter lives in `addons/copy_scene_tree/scene_tree_formatter.gd`. Its `Format` enum is the single place to register new output styles.
+```text
+Root (Node2D) [main.gd]
+  HUD (CanvasLayer)
+    HealthBar (ProgressBar)
+    ScoreLabel (Label)
+  World (Node2D)
+    Player (CharacterBody2D) [player.gd]
+    Enemies (Node2D) [enemy_manager.gd]
+```
+
+### Markdown
+
+````text
+```
+Root (Node2D) [main.gd]
+  - HUD (CanvasLayer)
+    - HealthBar (ProgressBar)
+    - ScoreLabel (Label)
+  - World (Node2D)
+    - Player (CharacterBody2D) [player.gd]
+    - Enemies (Node2D) [enemy_manager.gd]
+```
+````
+
+Script filenames are shown only when a script is attached. Scripts embedded directly in the scene rather than saved as `.gd` files show `[Built-in Script]`.
 
 ---
 
-## Adding New Formats
+## Export Options Reference
 
-1. Add a new entry to the `Format` enum in `addons/copy_scene_tree/scene_tree_formatter.gd`.
-2. Add a `match` branch in `_format_node()`.
-3. Optionally expose a settings UI in `addons/copy_scene_tree/plugin.gd` that persists the user's preference.
+| Option | Default | Description |
+|---|---|---|
+| Node Names | ✓ | The name of each node as shown in the Scene dock |
+| Node Types | ✓ | The built-in Godot class name, e.g. `CharacterBody2D` |
+| Attached Scripts | ✓ | Filename of any attached script, e.g. `[player.gd]` |
+| Groups | ✗ | All groups the node belongs to |
+| Node Paths | ✗ | Path relative to the exported root |
+| Owner | ✗ | The node's owner name |
+| Scene File | ✗ | Source `.tscn` filename for instanced scene roots |
+| Unique Name | ✗ | Prefixes the name with `%` when a unique name is assigned |
 
-No other files need to change.
+---
+
+## Architecture
+
+The addon is split into focused, single-responsibility scripts:
+
+| File | Responsibility |
+|---|---|
+| `plugin.gd` | EditorPlugin entry point, menu registration, dialog lifecycle |
+| `export_options_dialog.gd` | Dialog UI, reads/writes controls, emits `copy_requested` |
+| `export_options.gd` | Plain data class carrying all selected options |
+| `scene_tree_formatter.gd` | Pure formatter — `format_tree(root, options) → String` |
+| `settings_manager.gd` | Loads and saves options via `EditorSettings` |
+
+### Adding a New Output Format
+
+1. Add an entry to the `Format` enum in `export_options.gd`.
+2. Add a radio button for it in `export_options_dialog.gd`.
+3. Add a `_build_*` function and a `match` branch in `scene_tree_formatter.gd`.
+
+### Adding a New Export Option
+
+1. Add a `bool` property to `export_options.gd`.
+2. Add a checkbox in `export_options_dialog.gd`.
+3. Add a setting key and load/save lines in `settings_manager.gd`.
+4. Handle the option in `_format_node()` in `scene_tree_formatter.gd`.
 
 ---
 
 ## Compatibility
 
 | Godot version | Status |
-|---------------|--------|
+|---|---|
 | 4.x (4.0 and newer) | Supported |
 | 3.x | Not supported |
 
