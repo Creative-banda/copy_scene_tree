@@ -2,7 +2,7 @@
 
 Ever tried to describe your Godot scene structure in a GitHub issue, a bug report, or an AI chat — and ended up typing it out by hand? This plugin fixes that.
 
-**Copy Scene Tree** is a Godot 4.x editor plugin that copies any selected node's hierarchy as clean, readable text directly to your clipboard. One menu click, zero friction.
+**Copy Scene Tree** is a Godot 4.x editor plugin that lets you export any selected node's hierarchy as clean, readable text directly to your clipboard. Use the keyboard shortcut for instant copying, or open the export dialog to fine-tune exactly what gets included.
 
 It is especially useful when asking AI assistants like **ChatGPT**, **Claude**, or **Gemini** for help with your Godot project. Instead of describing your scene in prose, you can paste the exact structure and get answers grounded in your actual setup.
 
@@ -10,14 +10,14 @@ It is especially useful when asking AI assistants like **ChatGPT**, **Claude**, 
 
 ## Features
 
-- One-click export of any selected node and its full subtree
-- Configurable export dialog — choose exactly what gets included
+- **Keyboard shortcut** — copy instantly with `Alt+Shift+C`, no dialog needed
+- **Configurable export dialog** — choose exactly what gets included before copying
 - **Export options:** Node Names, Node Types, Attached Scripts, Groups, Node Paths, Owner, Scene File, Unique Name
 - **Output formats:** ASCII Tree (default), Plain Text, Markdown
+- **Native toast notification** — a built-in editor notification confirms every successful copy
 - Settings are automatically remembered across restarts and project switches
 - Reset Defaults button to restore the original configuration in one click
 - Copies directly to the system clipboard
-- Non-blocking confirmation in the Output panel
 - Editor-only addon with no runtime footprint in exported games
 
 ---
@@ -76,15 +76,27 @@ Search for **Copy Scene Tree** in the Godot Asset Library and click **Install**.
 
 ## Usage
 
-1. Open a scene and select any node in the **Scene** dock.
+There are two ways to copy your scene tree:
+
+### Quick copy (keyboard shortcut)
+
+1. Select any node in the **Scene** dock.
+2. Press **Alt+Shift+C**.
+3. The hierarchy is copied to your clipboard using your last saved settings.
+4. A native editor notification confirms the copy.
+
+### With export options (menu)
+
+1. Select any node in the **Scene** dock.
 2. Go to **Project → Tools → Copy Scene Tree**.
 3. The export dialog opens. Choose which information to include and the output format.
-4. Click **Copy**. The hierarchy is written to your clipboard.
-5. Paste it anywhere: an AI chat, a GitHub issue, documentation, or a message to a teammate.
+4. Click **Copy**.
 
-Your selections are saved automatically. The next time you open the dialog your previous choices are already set. Use **Reset Defaults** to restore the original configuration at any time.
+Your selections are saved automatically. Use **Reset Defaults** to restore the original configuration at any time.
 
-A confirmation message appears in the **Output** panel so you know the copy succeeded.
+### Changing the shortcut
+
+Go to **Editor → Editor Settings → Shortcuts** and search for **copy_scene_tree**. Double-click the entry to assign a different key combination.
 
 > **Why not the right-click context menu?**
 > Godot 4.x does not expose a public API for injecting items into the Scene dock's
@@ -169,7 +181,7 @@ The addon is split into focused, single-responsibility scripts:
 
 | File | Responsibility |
 |---|---|
-| `plugin.gd` | EditorPlugin entry point, menu registration, dialog lifecycle |
+| `plugin.gd` | EditorPlugin entry point, menu registration, shortcut handling, dialog lifecycle |
 | `export_options_dialog.gd` | Dialog UI, reads/writes controls, emits `copy_requested` |
 | `export_options.gd` | Plain data class carrying all selected options |
 | `scene_tree_formatter.gd` | Pure formatter — `format_tree(root, options) → String` |
@@ -180,8 +192,6 @@ The addon is split into focused, single-responsibility scripts:
 1. Add an entry to the `Format` enum in `export_options.gd`.
 2. Add a radio button for it in `export_options_dialog.gd` (`_init`).
 3. Add a `_build_*` function and a `match` branch in `scene_tree_formatter.gd`.
-
-No other files need to change.
 
 ### Adding a New Export Option
 

@@ -15,8 +15,8 @@ extends ConfirmationDialog
 ## [param options] is a fully populated ExportOptions ready for the formatter.
 signal copy_requested(options)
 
-const ExportOptions    = preload("res://addons/copy_scene_tree/export_options.gd")
-const SettingsManager  = preload("res://addons/copy_scene_tree/settings_manager.gd")
+const ExportOptions   = preload("res://addons/copy_scene_tree/export_options.gd")
+const SettingsManager = preload("res://addons/copy_scene_tree/settings_manager.gd")
 
 # ── Content checkboxes ─────────────────────────────────────────────────────
 var _cb_names:       CheckBox
@@ -29,26 +29,24 @@ var _cb_scene_file:  CheckBox
 var _cb_unique_name: CheckBox
 
 # ── Format radio buttons ───────────────────────────────────────────────────
-var _rb_plain:    CheckBox   # ButtonGroup makes these behave as radio buttons.
+var _rb_plain:    CheckBox
 var _rb_ascii:    CheckBox
 var _rb_markdown: CheckBox
 
 
 func _init() -> void:
-	# ── Window properties ────────────────────────────────────────────────
 	title = "Copy Scene Tree"
-	# Use a compact minimum size; content determines actual size.
-	min_size = Vector2i(320, 0)
-
-	# Rename the default OK button to "Copy".
 	get_ok_button().text = "Copy"
 
 	# ── Root layout ──────────────────────────────────────────────────────
+	# Give the vbox a fixed minimum width. This is the reliable way to
+	# control dialog width when building UI procedurally — the Window sizes
+	# itself to fit its content, so forcing content width forces dialog width.
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 6)
 	add_child(vbox)
 
-	# ── Content section ──────────────────────────────────────────────────
+	# ── Include section ───────────────────────────────────────────────────
 	vbox.add_child(_make_section_label("Include"))
 
 	var content_grid := GridContainer.new()
@@ -57,19 +55,18 @@ func _init() -> void:
 	content_grid.add_theme_constant_override("v_separation", 2)
 	vbox.add_child(content_grid)
 
-	_cb_names       = _make_checkbox("Node Names",          true,  content_grid)
-	_cb_types       = _make_checkbox("Node Types",          true,  content_grid)
-	_cb_scripts     = _make_checkbox("Attached Scripts",    true,  content_grid)
-	_cb_groups      = _make_checkbox("Groups",              false, content_grid)
-	_cb_node_paths  = _make_checkbox("Node Paths",          false, content_grid)
-	_cb_owner       = _make_checkbox("Owner",               false, content_grid)
-	_cb_scene_file  = _make_checkbox("Scene File",          false, content_grid)
-	_cb_unique_name = _make_checkbox("Unique Name (%)",     false, content_grid)
+	_cb_names       = _make_checkbox("Node Names",       true,  content_grid)
+	_cb_types       = _make_checkbox("Node Types",       true,  content_grid)
+	_cb_scripts     = _make_checkbox("Attached Scripts", true,  content_grid)
+	_cb_groups      = _make_checkbox("Groups",           false, content_grid)
+	_cb_node_paths  = _make_checkbox("Node Paths",       false, content_grid)
+	_cb_owner       = _make_checkbox("Owner",            false, content_grid)
+	_cb_scene_file  = _make_checkbox("Scene File",       false, content_grid)
+	_cb_unique_name = _make_checkbox("Unique Name (%)",  false, content_grid)
 
-	# ── Separator ────────────────────────────────────────────────────────
 	vbox.add_child(HSeparator.new())
 
-	# ── Format section ───────────────────────────────────────────────────
+	# ── Output Format section ─────────────────────────────────────────────
 	vbox.add_child(_make_section_label("Output Format"))
 
 	var format_vbox := VBoxContainer.new()
@@ -77,17 +74,24 @@ func _init() -> void:
 	vbox.add_child(format_vbox)
 
 	var btn_group := ButtonGroup.new()
-	_rb_plain    = _make_radio("Plain Text",  btn_group, format_vbox)
-	_rb_ascii    = _make_radio("ASCII Tree",  btn_group, format_vbox)
-	_rb_markdown = _make_radio("Markdown",    btn_group, format_vbox)
-
-	# Default selection.
+	_rb_plain    = _make_radio("Plain Text", btn_group, format_vbox)
+	_rb_ascii    = _make_radio("ASCII Tree", btn_group, format_vbox)
+	_rb_markdown = _make_radio("Markdown",   btn_group, format_vbox)
 	_rb_ascii.button_pressed = true
 
-	# ── Separator ────────────────────────────────────────────────────────
 	vbox.add_child(HSeparator.new())
 
-	# ── Footer row: Reset Defaults button + info label ────────────────────
+	# ── Shortcut tip ──────────────────────────────────────────────────────
+	# Kept intentionally short so it fits on one line at the dialog's natural
+	# width — no wrapping, no size impact on the layout.
+	var tip := Label.new()
+	tip.text = "Tip: Use Alt+Shift+C to copy without opening this dialog."
+	tip.add_theme_font_size_override("font_size", 10)
+	vbox.add_child(tip)
+
+	vbox.add_child(HSeparator.new())
+
+	# ── Footer row ────────────────────────────────────────────────────────
 	var footer := HBoxContainer.new()
 	vbox.add_child(footer)
 
@@ -96,7 +100,6 @@ func _init() -> void:
 	reset_btn.pressed.connect(_on_reset_defaults)
 	footer.add_child(reset_btn)
 
-	# Spacer pushes the info label to the right.
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	footer.add_child(spacer)
@@ -104,21 +107,22 @@ func _init() -> void:
 	var info_lbl := Label.new()
 	info_lbl.text = "Settings are automatically remembered."
 	info_lbl.add_theme_font_size_override("font_size", 10)
-	info_lbl.modulate = Color(1, 1, 1, 0.45)  # Subtle; inherits editor theme colour.
+	info_lbl.modulate = Color(1, 1, 1, 0.45)
 	footer.add_child(info_lbl)
 
-	# ── Wire up the OK (Copy) button ─────────────────────────────────────
 	confirmed.connect(_on_confirmed)
 
 
-## Called by the plugin right before the dialog is shown.
+# ── Public API ────────────────────────────────────────────────────────────
+
+## Called by the plugin right before popup_centered().
 ## Loads persisted settings and refreshes every control.
 func load_settings() -> void:
 	var opts = SettingsManager.load_options()
 	_apply_options_to_ui(opts)
 
 
-# ── Signal handlers ────────────────────────────────────────────────────────
+# ── Signal handlers ───────────────────────────────────────────────────────
 
 func _on_confirmed() -> void:
 	var opts = _read_options_from_ui()
@@ -126,17 +130,14 @@ func _on_confirmed() -> void:
 	copy_requested.emit(opts)
 
 
-## Restores every control to the built-in defaults and immediately persists
-## them so the next dialog open reflects the reset state.
 func _on_reset_defaults() -> void:
-	var defaults = ExportOptions.new()  # All fields initialise to their defaults.
+	var defaults = ExportOptions.new()
 	_apply_options_to_ui(defaults)
 	SettingsManager.save_options(defaults)
 
 
 # ── UI helpers ────────────────────────────────────────────────────────────
 
-## Applies a loaded ExportOptions to all controls.
 func _apply_options_to_ui(opts) -> void:
 	_cb_names.button_pressed       = opts.include_names
 	_cb_types.button_pressed       = opts.include_types
@@ -156,7 +157,6 @@ func _apply_options_to_ui(opts) -> void:
 			_rb_ascii.button_pressed = true
 
 
-## Reads current control state and returns a populated ExportOptions.
 func _read_options_from_ui():
 	var opts := ExportOptions.new()
 
@@ -179,17 +179,14 @@ func _read_options_from_ui():
 	return opts
 
 
-## Creates a bold section-header label.
 static func _make_section_label(text: String) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
 	lbl.add_theme_font_size_override("font_size", 12)
-	# Use the editor's default bold font via theme variation.
 	lbl.theme_type_variation = "HeaderSmall"
 	return lbl
 
 
-## Creates a CheckBox, appends it to [param parent], and returns it.
 static func _make_checkbox(label: String, default_checked: bool, parent: Control) -> CheckBox:
 	var cb := CheckBox.new()
 	cb.text = label
@@ -198,8 +195,6 @@ static func _make_checkbox(label: String, default_checked: bool, parent: Control
 	return cb
 
 
-## Creates a radio-button-style CheckBox (part of [param group]),
-## appends it to [param parent], and returns it.
 static func _make_radio(label: String, group: ButtonGroup, parent: Control) -> CheckBox:
 	var cb := CheckBox.new()
 	cb.text = label
